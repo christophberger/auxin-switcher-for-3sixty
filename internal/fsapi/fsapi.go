@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/christophberger/3sixty/internal/xml"
 )
 
 type fsapi struct {
-	url string
-	pin string
-	sid string
-	xq  *xml.Query
+	url    string
+	pin    string
+	sid    string
+	client *http.Client
+	xq     *xml.Query
 }
 
 const (
@@ -24,39 +26,43 @@ func New(url, pin string) *fsapi {
 	return &fsapi{
 		url: url,
 		pin: pin,
-		xq:  xml.New()}
+		xq:  xml.New(),
+		client: &http.Client{
+			Timeout: 5 * time.Second,
+		},
+	}
 }
 
-func (f *fsapi) CreateSession() error {
-
-	url := "http://k--che.fritz.box/fsapi/CREATE_SESSION?pin=1812"
-	method := "GET"
-
-	client := &http.Client{}
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return fmt.Errorf("CreateSession: creating request failed:", err)
-	}
-
-	res, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("CreateSession: running request failed:", err)
-	}
-	defer res.Body.Close()
-
-	body, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("CreateSession: cannot read body:", err)
-	}
-
-	f.sid, err = f.get(body, "sessionId")
+func (f *fsapi) CreateSession() (err error) {
+	query := fmt.Sprintf("CREATE_SESSION?pin=%s", f.pin)
+	f.sid, err = f.get(query, "sessionId")
 	if err != nil {
 		return fmt.Errorf("CreateSession: cannot get SID: %w", err)
 	}
 	return nil
 }
 
-func (f fsapi) get(body []byte, path string) (string, error) {
+// get receives a query endpoint (minus the base URL) and a
+// query pqth to the desired value in the XML response.
+// It returns the value as a string, or an error if the query fails.
+func (f fsapi) get(query, resPath string) (string, error) {
+	endpoint := fmt.Sprintf("%s/%s", f.url, query)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("call: creating request failed:", err)
+	}
+
+	res, err := f.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("call: running request failed:", err)
+	}
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("call: cannot read body:", err)
+	}
+
 	status, err := f.xq.Get(body, "fsapiResponse.status")
 	if err != nil {
 		return "", fmt.Errorf("get: cannot get status: %w", err)
@@ -64,7 +70,7 @@ func (f fsapi) get(body []byte, path string) (string, error) {
 	if status != statusOK {
 		return "", fmt.Errorf("get: status is %s", status)
 	}
-	val, err := f.xq.Get(body, "fsapiResponse."+path)
+	val, err := f.xq.Get(body, "fsapiResponse."+resPath)
 	if err != nil {
 		return "", err
 	}
