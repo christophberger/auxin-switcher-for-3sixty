@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/christophberger/3sixty/internal/fsapi"
 )
@@ -22,4 +23,13 @@ func main() {
 		log.Fatalln(err)
 	}
 	fmt.Println(fs.Sid())
+	err = fs.SetMode("7")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	<-time.After(5 * time.Second)
+	err = fs.SetMode("4")
+	if err != nil {
+		log.Fatalln(err)
+	}
 }

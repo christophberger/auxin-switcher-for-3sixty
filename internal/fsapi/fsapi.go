@@ -42,6 +42,15 @@ func (f *fsapi) CreateSession() (err error) {
 	return nil
 }
 
+func (f *fsapi) SetMode(mode string) (err error) {
+	query := fmt.Sprintf("SET/netRemote.sys.mode?pin=%s&sid=%s&value=%s", f.pin, f.sid, mode)
+	_, err = f.get(query, "status")
+	if err != nil {
+		return fmt.Errorf("SetMode: cannot set mode: %w", err)
+	}
+	return nil
+}
+
 // get receives a query endpoint (minus the base URL) and a
 // query pqth to the desired value in the XML response.
 // It returns the value as a string, or an error if the query fails.
