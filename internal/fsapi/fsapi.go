@@ -40,11 +40,38 @@ func (f *fsapi) CreateSession() (err error) {
 	return nil
 }
 
+func (f *fsapi) GetMode() (mode string, err error) {
+	query := fmt.Sprintf("GET/netRemote.sys.mode?pin=%s&sid=%s", f.pin, f.sid)
+	mode, err = f.get(query, "value.u32")
+	if err != nil {
+		return "", fmt.Errorf("GetMode: cannot set mode: %w", err)
+	}
+	return mode, nil
+}
+
 func (f *fsapi) SetMode(mode string) (err error) {
 	query := fmt.Sprintf("SET/netRemote.sys.mode?pin=%s&sid=%s&value=%s", f.pin, f.sid, mode)
 	_, err = f.get(query, "status")
 	if err != nil {
 		return fmt.Errorf("SetMode: cannot set mode: %w", err)
+	}
+	return nil
+}
+
+func (f *fsapi) GetPowerStatus() (powerStatus string, err error) {
+	query := fmt.Sprintf("GET/netRemote.sys.power?pin=%s&sid=%s", f.pin, f.sid)
+	powerStatus, err = f.get(query, "value.u8")
+	if err != nil {
+		return "", fmt.Errorf("GetPowerStatus: cannot get status: %w", err)
+	}
+	return powerStatus, nil
+}
+
+func (f *fsapi) SetPowerStatus(powerStatus string) error {
+	query := fmt.Sprintf("SET/netRemote.sys.power?pin=%s&sid=%s&value=%s", f.pin, f.sid, powerStatus)
+	status, err := f.get(query, "status")
+	if err != nil {
+		return fmt.Errorf("SetPowerStatus: cannot set status - error %s: %w", status, err)
 	}
 	return nil
 }
@@ -77,7 +104,7 @@ func (f fsapi) get(query, resPath string) (string, error) {
 	if status != statusOK {
 		return "", fmt.Errorf("get: status is %s", status)
 	}
-	val, err := xml.Get(body, "fsapiResponse."+resPath)
+	val, err := xml.Get(body, ".fsapiResponse."+resPath)
 	if err != nil {
 		return "", err
 	}

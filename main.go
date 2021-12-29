@@ -18,17 +18,31 @@ func main() {
 	pin := flag.String("pin", "0000", "PIN of 3sixty")
 	flag.Parse()
 	fs := fsapi.New(*url, *pin)
+
 	err := fs.CreateSession()
 	if err != nil {
 		log.Fatalln(err)
 	}
 	fmt.Println(fs.Sid())
+
 	err = fs.SetMode("7")
 	if err != nil {
 		log.Fatalln(err)
 	}
+
 	<-time.After(5 * time.Second)
 	err = fs.SetMode("4")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	power, err := fs.GetPowerStatus()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Println(power)
+
+	err = fs.SetPowerStatus("0")
 	if err != nil {
 		log.Fatalln(err)
 	}
