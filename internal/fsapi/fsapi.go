@@ -14,7 +14,6 @@ type fsapi struct {
 	pin    string
 	sid    string
 	client *http.Client
-	xq     *xml.Query
 }
 
 const (
@@ -26,7 +25,6 @@ func New(url, pin string) *fsapi {
 	return &fsapi{
 		url: url,
 		pin: pin,
-		xq:  xml.New(),
 		client: &http.Client{
 			Timeout: 5 * time.Second,
 		},
@@ -72,14 +70,14 @@ func (f fsapi) get(query, resPath string) (string, error) {
 		return "", fmt.Errorf("call: cannot read body:", err)
 	}
 
-	status, err := f.xq.Get(body, "fsapiResponse.status")
+	status, err := xml.Get(body, ".fsapiResponse.status")
 	if err != nil {
 		return "", fmt.Errorf("get: cannot get status: %w", err)
 	}
 	if status != statusOK {
 		return "", fmt.Errorf("get: status is %s", status)
 	}
-	val, err := f.xq.Get(body, "fsapiResponse."+resPath)
+	val, err := xml.Get(body, "fsapiResponse."+resPath)
 	if err != nil {
 		return "", err
 	}

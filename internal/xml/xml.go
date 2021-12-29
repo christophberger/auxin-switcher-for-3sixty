@@ -5,13 +5,11 @@ import (
 	"encoding/json"
 
 	xj "github.com/basgys/goxml2json"
-	gojsonq "github.com/thedevsaddam/gojsonq/v2"
+	"github.com/tomwright/dasel"
 )
 
-type xmlDecoder struct {
-}
-
-func (i *xmlDecoder) Decode(data []byte, v interface{}) error {
+// convert XML to JSON, then unmarshal JSON
+func decodeXML(data []byte, v interface{}) error {
 	buf, err := xj.Convert(bytes.NewReader(data))
 	if err != nil {
 		return err
@@ -19,19 +17,14 @@ func (i *xmlDecoder) Decode(data []byte, v interface{}) error {
 	return json.Unmarshal(buf.Bytes(), &v)
 }
 
-type Query struct {
-	jq *gojsonq.JSONQ
-}
-
-func New() *Query {
-	return &Query{gojsonq.New(gojsonq.SetDecoder(&xmlDecoder{}))}
-}
-
-// Get returns the value at path.
-func (q Query) Get(xml []byte, path string) (string, error) {
-	val, err := q.jq.FromString(string(xml)).From(path).GetR()
+// Get queries the unmarshaled XML data for the given path.
+func Get(xml []byte, daselQuery string) (string, error) {
+	var data interface{}
+	err := decodeXML(xml, &data)
+	rootNode := dasel.New(data)
+	val, err := rootNode.Query(daselQuery)
 	if err != nil {
 		return "", err
 	}
-	return val.String()
+	return val.String(), nil
 }
