@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log"
 
@@ -23,6 +22,10 @@ const (
 	sndStatUnknown
 )
 
+type app struct {
+	previous sndStat
+}
+
 // soundStatus continuously delivers the status of the sound card
 // through the returned channel.
 //
@@ -30,55 +33,47 @@ const (
 // This way, the receiver can decide upon when status checks happen.
 // Otherwise, the loop would have to use a timer for pausing, thus
 // imposing a fixed interval of status updates.
-func monitorSoundStatus(ctx context.Context) chan sndStat {
-	previous, current := sndStatUnknown, sndStatUnknown
-	statCh := make(chan sndStat)
-	go func() {
-		for {
-			status, err := hifiberry.GetSoundStatus()
-			if err != nil {
-				statCh <- sndStatUnknown
-			}
-			current = sndStatOff
-			if status {
-				current = sndStatOn
-			}
-			switch {
-			case current == sndStatOn && previous == sndStatOff:
-				statCh <- sndStatSwitchedOn
-			case current == sndStatOff && previous == sndStatOn:
-				statCh <- sndStatSwitchedOff
-			default:
-				statCh <- current
-			}
-			previous = current
-		}
+func soundStatus(a *app) sndStat {
+	current := sndStatOff
+
+	// save current status on return for detecting status changes
+	defer func() {
+		a.previous = current
 	}()
-	return statCh
+
+	// determine the current status
+	status, err := hifiberry.GetSoundStatus()
+	if err != nil {
+		return sndStatUnknown
+	}
+	if status {
+		current = sndStatOn
+	}
+
+	// if the status has changed, return it; else return the current status
+	switch {
+	case current == sndStatOn && a.previous == sndStatOff:
+		return sndStatSwitchedOn
+	case current == sndStatOff && a.previous == sndStatOn:
+		return sndStatSwitchedOff
+	default:
+		return current
+	}
 }
 
-// monitorRadioListenStatus detects whether or not the radio is listening
+// radioListenStatus detects whether or not the radio is listening
 // to aux in. If it is, the function returns true. If the radio is switched
 // off or to another source, the function returns false.
 // If querying the radio fails, the function returns false, assuming that
-// the radio is not ready to play music.
-func monitorRadioListenStatus(ctx context.Context) chan bool {
-	statCh := make(chan bool)
+// the radio is not ready to play music from aux-in.
+func radioListenStatus() bool {
 	fs := fsapi.New(url, pin)
-	go func() {
-		for {
-			// No error checking for the following two calls.
-			// If the calls fail, the radio is probably not
-			// ready to listen.
-			power, _ := fs.GetPowerStatus()
-			mode, _ := fs.GetMode()
-			if power == fsapi.PowerOn && mode == fsapi.AuxInId {
-				statCh <- true
-				continue
-			}
-		}
-	}()
-	return statCh
+	power, _ := fs.GetPowerStatus()
+	mode, _ := fs.GetMode()
+	if power == fsapi.PowerOn && mode == fsapi.AuxInId {
+		return true
+	}
+	return false
 }
 
 func main() {
