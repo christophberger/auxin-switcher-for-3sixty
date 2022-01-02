@@ -9,7 +9,7 @@ import (
 	"github.com/christophberger/3sixty/internal/xml"
 )
 
-type fsapi struct {
+type Fsapi struct {
 	url    string
 	pin    string
 	sid    string
@@ -17,12 +17,15 @@ type fsapi struct {
 }
 
 const (
+	AuxInId     = "7"
+	PowerOff    = "0"
+	PowerOn     = "1"
 	responseTag = "fsapiResponse"
 	statusOK    = "FS_OK"
 )
 
-func New(url, pin string) *fsapi {
-	return &fsapi{
+func New(url, pin string) *Fsapi {
+	return &Fsapi{
 		url: url,
 		pin: pin,
 		client: &http.Client{
@@ -31,7 +34,7 @@ func New(url, pin string) *fsapi {
 	}
 }
 
-func (f *fsapi) CreateSession() (err error) {
+func (f *Fsapi) CreateSession() (err error) {
 	query := fmt.Sprintf("CREATE_SESSION?pin=%s", f.pin)
 	f.sid, err = f.get(query, "sessionId")
 	if err != nil {
@@ -40,7 +43,7 @@ func (f *fsapi) CreateSession() (err error) {
 	return nil
 }
 
-func (f *fsapi) GetMode() (mode string, err error) {
+func (f *Fsapi) GetMode() (mode string, err error) {
 	query := fmt.Sprintf("GET/netRemote.sys.mode?pin=%s&sid=%s", f.pin, f.sid)
 	mode, err = f.get(query, "value.u32")
 	if err != nil {
@@ -49,7 +52,7 @@ func (f *fsapi) GetMode() (mode string, err error) {
 	return mode, nil
 }
 
-func (f *fsapi) SetMode(mode string) (err error) {
+func (f *Fsapi) SetMode(mode string) (err error) {
 	query := fmt.Sprintf("SET/netRemote.sys.mode?pin=%s&sid=%s&value=%s", f.pin, f.sid, mode)
 	_, err = f.get(query, "status")
 	if err != nil {
@@ -58,7 +61,7 @@ func (f *fsapi) SetMode(mode string) (err error) {
 	return nil
 }
 
-func (f *fsapi) GetPowerStatus() (powerStatus string, err error) {
+func (f *Fsapi) GetPowerStatus() (powerStatus string, err error) {
 	query := fmt.Sprintf("GET/netRemote.sys.power?pin=%s&sid=%s", f.pin, f.sid)
 	powerStatus, err = f.get(query, "value.u8")
 	if err != nil {
@@ -67,7 +70,7 @@ func (f *fsapi) GetPowerStatus() (powerStatus string, err error) {
 	return powerStatus, nil
 }
 
-func (f *fsapi) SetPowerStatus(powerStatus string) error {
+func (f *Fsapi) SetPowerStatus(powerStatus string) error {
 	query := fmt.Sprintf("SET/netRemote.sys.power?pin=%s&sid=%s&value=%s", f.pin, f.sid, powerStatus)
 	status, err := f.get(query, "status")
 	if err != nil {
@@ -77,9 +80,9 @@ func (f *fsapi) SetPowerStatus(powerStatus string) error {
 }
 
 // get receives a query endpoint (minus the base URL) and a
-// query pqth to the desired value in the XML response.
+// query path to the desired value in the XML response.
 // It returns the value as a string, or an error if the query fails.
-func (f fsapi) get(query, resPath string) (string, error) {
+func (f Fsapi) get(query, resPath string) (string, error) {
 	endpoint := fmt.Sprintf("%s/%s", f.url, query)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -111,6 +114,6 @@ func (f fsapi) get(query, resPath string) (string, error) {
 	return val, err
 }
 
-func (f fsapi) Sid() string {
+func (f Fsapi) Sid() string {
 	return f.sid
 }
