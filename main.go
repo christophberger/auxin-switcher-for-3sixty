@@ -103,7 +103,7 @@ func eventLoop(a *app, fs *fsapi.Fsapi) error {
 			fs.SetMode(fsapi.AuxIn)
 		case sndStatSwitchedOff:
 			if a.previousMode != fsapi.AuxIn {
-				err := fs.SetMode(fsapi.AuxIn)
+				err := fs.SetMode(a.previousMode)
 				if err != nil {
 					return fmt.Errorf("eventLoop: cannot set mode: %w", err)
 				}
