@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -17,7 +18,67 @@ var pin string
 func main() {
 
 	// test3sixty()
-	soundCardStatus()
+	testSoundStatus()
+}
+
+type sndStat int
+
+const (
+	sndStatOff sndStat = iota
+	sndStatSwitchedOn
+	sndStatOn
+	sndStatSwitchedOff
+	sndStatUnknown
+)
+
+// soundStatus continuously delivers the status of the sound card
+// through the returned channel.
+//
+//
+//
+// The busy loop blocks until the reader fetches the next value.
+// This way, the receiver can decide upon when status checks happen.
+// Otherwise, the loop would have to use a timer for pausing, thus
+// imposing a fixed interval of status updates.
+func monitorSoundStatus(ctx context.Context) chan sndStat {
+	previous, current := sndStatUnknown, sndStatUnknown
+	statCh := make(chan sndStat)
+	go func() {
+		for {
+			status, err := hifiberry.GetSoundStatus()
+			if err != nil {
+				statCh <- sndStatUnknown
+			}
+			current = sndStatOff
+			if status {
+				current = sndStatOn
+			}
+			switch {
+			case current == sndStatOn && previous == sndStatOff:
+				statCh <- sndStatSwitchedOn
+			case current == sndStatOff && previous == sndStatOn:
+				statCh <- sndStatSwitchedOff
+			default:
+				statCh <- current
+			}
+			previous = current
+		}
+	}()
+	return statCh
+}
+
+func testSoundStatus() {
+	ctx := context.Background()
+	statCh := monitorSoundStatus(ctx)
+	for {
+		select {
+		case stat := <-statCh:
+			fmt.Println(stat)
+		case <-ctx.Done():
+			return
+		}
+		<-time.After(1 * time.Second)
+	}
 }
 
 func test3sixty() {
@@ -51,12 +112,5 @@ func test3sixty() {
 	err = fs.SetPowerStatus("0")
 	if err != nil {
 		log.Fatalln(err)
-	}
-}
-
-func soundCardStatus() {
-	for {
-		fmt.Println(hifiberry.GetSoundStatus())
-		<-time.After(1 * time.Second)
 	}
 }
