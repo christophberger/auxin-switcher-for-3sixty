@@ -1,0 +1,14 @@
+[Unit]
+Description=Switch 3sixty to aux-in when music is playing
+Documentation=https://github.com/christophberger/3sixty
+
+[Service]
+Type=simple
+DynamicUser=yes
+EnvironmentFile=/etc/3sixty.conf
+ExecStart=/usr/local/bin/3sixty $PIN
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
