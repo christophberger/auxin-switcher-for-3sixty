@@ -8,18 +8,13 @@ import (
 	"time"
 
 	"github.com/christophberger/3sixty/internal/fsapi"
+	Fsapi "github.com/christophberger/3sixty/internal/fsapi"
 	"github.com/christophberger/3sixty/internal/hifiberry"
 )
 
 // flags
 var url string
 var pin string
-
-func main() {
-
-	// test3sixty()
-	testSoundStatus()
-}
 
 type sndStat int
 
@@ -33,8 +28,6 @@ const (
 
 // soundStatus continuously delivers the status of the sound card
 // through the returned channel.
-//
-//
 //
 // The busy loop blocks until the reader fetches the next value.
 // This way, the receiver can decide upon when status checks happen.
@@ -67,7 +60,31 @@ func monitorSoundStatus(ctx context.Context) chan sndStat {
 	return statCh
 }
 
-func testSoundStatus() {
+// monitorRadioListenStatus detects whether or not the radio is listening
+// to aux in. If it is, the function returns true. If the radio is switched
+// off or to another source, the function returns false.
+// If querying the radio fails, the function returns false, assuming that
+// the radio is not ready to play music.
+func monitorRadioListenStatus(ctx context.Context) chan bool {
+	statCh := make(chan bool)
+	fs := Fsapi.New(url, pin)
+	go func() {
+		for {
+			// No error checking for the following two calls.
+			// If the calls fail, the radio is probably not
+			// ready to listen.
+			power, _ := fs.GetPowerStatus()
+			mode, _ := fs.GetMode()
+			if power == Fsapi.PowerOn && mode == Fsapi.AuxInId {
+				statCh <- true
+				continue
+			}
+		}
+	}()
+	return statCh
+}
+
+func testSoundStatus(fs *fsapi.Fsapi) {
 	ctx := context.Background()
 	statCh := monitorSoundStatus(ctx)
 	for {
@@ -81,18 +98,10 @@ func testSoundStatus() {
 	}
 }
 
-func test3sixty() {
-	url := flag.String("url", "http://k--che.fritz.box/fsapi", "API URL to 3sixty")
-	pin := flag.String("pin", "0000", "PIN of 3sixty")
-	flag.Parse()
-	fs := fsapi.New(*url, *pin)
-	err := fs.CreateSession()
-	if err != nil {
-		log.Fatalln(err)
-	}
+func test3sixty(fs *fsapi.Fsapi) {
 	fmt.Println(fs.Sid())
 
-	err = fs.SetMode("7")
+	err := fs.SetMode("7")
 	if err != nil {
 		log.Fatalln(err)
 	}
@@ -113,4 +122,18 @@ func test3sixty() {
 	if err != nil {
 		log.Fatalln(err)
 	}
+}
+
+func main() {
+	url := flag.String("url", "http://k--che.fritz.box/fsapi", "API URL to 3sixty")
+	pin := flag.String("pin", "0000", "PIN of 3sixty")
+	flag.Parse()
+	fs := Fsapi.New(*url, *pin)
+	err := fs.CreateSession()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	// test3sixty(fs)
+	testSoundStatus(fs)
 }
