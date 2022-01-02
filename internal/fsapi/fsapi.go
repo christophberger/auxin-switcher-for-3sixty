@@ -18,6 +18,7 @@ type Fsapi struct {
 
 const (
 	AuxInId     = "7"
+	DABId       = "4"
 	PowerOff    = "0"
 	PowerOn     = "1"
 	responseTag = "fsapiResponse"
