@@ -36,7 +36,7 @@ func getCardNumber() (int, error) {
 
 // getStatus reads the status of the hifiberry sound card.
 // 0 = idle, 1 = playing
-func GetSoundStatus() (bool, error) {
+func IsPlaying() (bool, error) {
 	num, err := getCardNumber()
 	if err != nil {
 		return false, fmt.Errorf("GetCardStatus: cannot get card number: %w", err)
