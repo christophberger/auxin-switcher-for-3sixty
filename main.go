@@ -3,12 +3,9 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/christophberger/3sixty/internal/fsapi"
-	Fsapi "github.com/christophberger/3sixty/internal/fsapi"
 	"github.com/christophberger/3sixty/internal/hifiberry"
 )
 
@@ -67,7 +64,7 @@ func monitorSoundStatus(ctx context.Context) chan sndStat {
 // the radio is not ready to play music.
 func monitorRadioListenStatus(ctx context.Context) chan bool {
 	statCh := make(chan bool)
-	fs := Fsapi.New(url, pin)
+	fs := fsapi.New(url, pin)
 	go func() {
 		for {
 			// No error checking for the following two calls.
@@ -75,7 +72,7 @@ func monitorRadioListenStatus(ctx context.Context) chan bool {
 			// ready to listen.
 			power, _ := fs.GetPowerStatus()
 			mode, _ := fs.GetMode()
-			if power == Fsapi.PowerOn && mode == Fsapi.AuxInId {
+			if power == fsapi.PowerOn && mode == fsapi.AuxInId {
 				statCh <- true
 				continue
 			}
@@ -84,56 +81,13 @@ func monitorRadioListenStatus(ctx context.Context) chan bool {
 	return statCh
 }
 
-func testSoundStatus(fs *fsapi.Fsapi) {
-	ctx := context.Background()
-	statCh := monitorSoundStatus(ctx)
-	for {
-		select {
-		case stat := <-statCh:
-			fmt.Println(stat)
-		case <-ctx.Done():
-			return
-		}
-		<-time.After(1 * time.Second)
-	}
-}
-
-func test3sixty(fs *fsapi.Fsapi) {
-	fmt.Println(fs.Sid())
-
-	err := fs.SetMode("7")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	<-time.After(5 * time.Second)
-	err = fs.SetMode("4")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	power, err := fs.GetPowerStatus()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	fmt.Println(power)
-
-	err = fs.SetPowerStatus("0")
-	if err != nil {
-		log.Fatalln(err)
-	}
-}
-
 func main() {
 	url := flag.String("url", "http://k--che.fritz.box/fsapi", "API URL to 3sixty")
 	pin := flag.String("pin", "0000", "PIN of 3sixty")
 	flag.Parse()
-	fs := Fsapi.New(*url, *pin)
+	fs := fsapi.New(*url, *pin)
 	err := fs.CreateSession()
 	if err != nil {
 		log.Fatalln(err)
 	}
-
-	// test3sixty(fs)
-	testSoundStatus(fs)
 }
