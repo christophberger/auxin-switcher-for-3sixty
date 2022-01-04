@@ -43,3 +43,19 @@ Go code compiles to a single binary with no dependencies. And Go can cross-compi
 ## Disclaimer
 
 I built this project for my own purposes (obviously) but I am happy to share it here in case anybody else has a 3sixty (or some other Frontier Silicon based radio) and wonders how to auto-switch to aux-in in case a Raspi plays music.
+
+## Instructions
+
+If you really want to build this app for your own use (no guarantees that it will work outside my particular setup), follow these steps.
+
+1. Ensure you have [Go](https://go.dev) installed.
+2. Clone the repo.
+3. If you do this already on the target Raspi: run `go build` and move the binary to `/usr/local/bin/` (sudo required)
+4. Else run `GOOS=linux GOARCH=arm go build && scp 3sixty pi@zero3.local:/home/pi/` (given your Raspi user is `pi`)
+   Then `ssh` into your Raspi and move the binary to `/usr/local/bin` (sudo required)
+5. Edit 3sixty.conf and 3sixty.service as needed. (Required: base URL to your radio & access PIN)
+6. Move 3sixty.conf to /etc/ and 3sixty.service to /etc/systemd/system
+7. Run `sudo systemctl daemon-reload` 
+8. Run `sudo systemctl start 3sixty && sudo systemctl status 3sixty`
+9. Check the status - it should be "active (running)"
+10. If the service fails, check `/var/log/syslog`  
