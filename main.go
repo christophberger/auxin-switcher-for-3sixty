@@ -102,13 +102,22 @@ func eventLoop(a *app, fs *fsapi.Fsapi) error {
 
 			fs.SetMode(fsapi.AuxIn)
 		case sndStatSwitchedOff:
+			current, err := fs.GetMode()
+			if err != nil {
+				return fmt.Errorf("eventLoop: cannot get mode: %w", err)
+			}
+			if current != fsapi.AuxIn {
+				// Someone switched to another input while the Raspi player was playing
+				// Leave the radio alone
+				break
+			}
 			if a.previousMode != fsapi.AuxIn {
 				err := fs.SetMode(a.previousMode)
 				if err != nil {
 					return fmt.Errorf("eventLoop: cannot set mode: %w", err)
 				}
 			}
-			err := fs.SetPowerStatus(fsapi.PowerOff)
+			err = fs.SetPowerStatus(fsapi.PowerOff)
 			if err != nil {
 				return fmt.Errorf("eventLoop: cannot switch radio off: %w", err)
 			}
@@ -117,7 +126,7 @@ func eventLoop(a *app, fs *fsapi.Fsapi) error {
 }
 
 func main() {
-	url := flag.String("url", "http://CHANFGE_ME/fsapi", "API URL to 3sixty")
+	url := flag.String("url", "http://CHANGE_ME/fsapi", "API URL to 3sixty")
 	pin := flag.String("pin", "1234", "PIN of 3sixty")
 	flag.Parse()
 	fs := fsapi.New(*url, *pin)

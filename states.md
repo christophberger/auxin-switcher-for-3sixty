@@ -18,10 +18,10 @@ tags:
 
 ## State-event-action-new-state table
 
-| event        | current status          | action                       | new status              |
-| ------------ | ----------------------- | ---------------------------- | ----------------------- |
-| music starts | off                     | switch on & to aux-in        | on, aux-in              |
-| music starts | on, anything but aux-in | switch to aux-in             | on, aux-in              |
-| music stops  | on, aux-in              | power off                    | off                     |
-| music stops  | on, switched to aux-in  | switch back to previous mode | on, anything but aux-in |
-
+| event        | current status                    | action                       | new status              |
+| ------------ | --------------------------------- | ---------------------------- | ----------------------- |
+| music starts | off                               | switch on & to aux-in        | on, aux-in              |
+| music starts | on, anything but aux-in           | switch to aux-in             | on, aux-in              |
+| music stops  | on, aux-in                        | power off                    | off                     |
+| music stops  | on, switched to aux-in            | switch back to previous mode | on, anything but aux-in |
+| music stops  | on, switched to a different input | leave radio alone            | unchanged               |
