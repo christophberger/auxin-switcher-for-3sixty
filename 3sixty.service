@@ -1,6 +1,6 @@
 [Unit]
 Description=Switch 3sixty to aux-in when music is playing
-Documentation=https://github.com/christophberger/3sixty
+Documentation=https://github.com/christophberger/auxin-switcher-for-3sixty
 
 [Service]
 Type=simple
