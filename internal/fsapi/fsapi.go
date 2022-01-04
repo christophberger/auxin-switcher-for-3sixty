@@ -37,7 +37,7 @@ func New(url, pin string) *Fsapi {
 
 func (f *Fsapi) CreateSession() (err error) {
 	query := fmt.Sprintf("CREATE_SESSION?pin=%s", f.pin)
-	f.sid, err = f.get(query, "sessionId")
+	f.sid, err = f.call(query, "sessionId")
 	if err != nil {
 		return fmt.Errorf("CreateSession: cannot get SID: %w", err)
 	}
@@ -46,7 +46,7 @@ func (f *Fsapi) CreateSession() (err error) {
 
 func (f *Fsapi) GetMode() (mode string, err error) {
 	query := fmt.Sprintf("GET/netRemote.sys.mode?pin=%s&sid=%s", f.pin, f.sid)
-	mode, err = f.get(query, "value.u32")
+	mode, err = f.call(query, "value.u32")
 	if err != nil {
 		return "", fmt.Errorf("GetMode: cannot set mode: %w", err)
 	}
@@ -55,7 +55,7 @@ func (f *Fsapi) GetMode() (mode string, err error) {
 
 func (f *Fsapi) SetMode(mode string) (err error) {
 	query := fmt.Sprintf("SET/netRemote.sys.mode?pin=%s&sid=%s&value=%s", f.pin, f.sid, mode)
-	_, err = f.get(query, "status")
+	_, err = f.call(query, "status")
 	if err != nil {
 		return fmt.Errorf("SetMode: cannot set mode: %w", err)
 	}
@@ -64,7 +64,7 @@ func (f *Fsapi) SetMode(mode string) (err error) {
 
 func (f *Fsapi) GetPowerStatus() (powerStatus string, err error) {
 	query := fmt.Sprintf("GET/netRemote.sys.power?pin=%s&sid=%s", f.pin, f.sid)
-	powerStatus, err = f.get(query, "value.u8")
+	powerStatus, err = f.call(query, "value.u8")
 	if err != nil {
 		return "", fmt.Errorf("GetPowerStatus: cannot get status: %w", err)
 	}
@@ -73,32 +73,32 @@ func (f *Fsapi) GetPowerStatus() (powerStatus string, err error) {
 
 func (f *Fsapi) SetPowerStatus(powerStatus string) error {
 	query := fmt.Sprintf("SET/netRemote.sys.power?pin=%s&sid=%s&value=%s", f.pin, f.sid, powerStatus)
-	status, err := f.get(query, "status")
+	status, err := f.call(query, "status")
 	if err != nil {
 		return fmt.Errorf("SetPowerStatus: cannot set status - error %s: %w", status, err)
 	}
 	return nil
 }
 
-// get receives a query endpoint (minus the base URL) and a
+// call receives a query endpoint (minus the base URL) and a
 // query path to the desired value in the XML response.
 // It returns the value as a string, or an error if the query fails.
-func (f Fsapi) get(query, resPath string) (string, error) {
+func (f Fsapi) call(query, resPath string) (string, error) {
 	endpoint := fmt.Sprintf("%s/%s", f.url, query)
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return "", fmt.Errorf("call: creating request failed:", err)
+		return "", fmt.Errorf("call: creating request failed: %w", err)
 	}
 
 	res, err := f.client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("call: running request failed:", err)
+		return "", fmt.Errorf("call: running request failed: %w", err)
 	}
 	defer res.Body.Close()
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return "", fmt.Errorf("call: cannot read body:", err)
+		return "", fmt.Errorf("call: cannot read body: %w", err)
 	}
 
 	status, err := xml.Get(body, ".fsapiResponse.status")
