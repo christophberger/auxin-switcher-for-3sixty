@@ -6,7 +6,7 @@ Documentation=https://github.com/christophberger/3sixty
 Type=simple
 DynamicUser=yes
 EnvironmentFile=/etc/3sixty.conf
-ExecStart=/usr/local/bin/3sixty $PIN
+ExecStart=/usr/local/bin/3sixty $PIN $URL
 Restart=always
 RestartSec=3
 
