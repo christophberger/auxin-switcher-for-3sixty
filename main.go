@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/christophberger/3sixty/internal/fsapi"
 	"github.com/christophberger/3sixty/internal/hifiberry"
@@ -126,13 +127,15 @@ func eventLoop(a *app, fs *fsapi.Fsapi) error {
 }
 
 func main() {
+	log.SetFlags(log.Ldate | log.Ltime)
 	url := flag.String("url", "http://CHANGE_ME/fsapi", "API URL to 3sixty")
 	pin := flag.String("pin", "1234", "PIN of 3sixty")
 	flag.Parse()
 	fs := fsapi.New(*url, *pin)
 	err := fs.CreateSession()
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
+		os.Exit(-1)
 	}
 
 	a := &app{}
