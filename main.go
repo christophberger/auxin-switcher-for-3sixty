@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/christophberger/3sixty/internal/fsapi"
 	"github.com/christophberger/3sixty/internal/hifiberry"
@@ -123,6 +124,7 @@ func eventLoop(a *app, fs *fsapi.Fsapi) error {
 				return fmt.Errorf("eventLoop: cannot switch radio off: %w", err)
 			}
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 
