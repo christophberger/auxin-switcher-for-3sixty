@@ -59,5 +59,7 @@ If you really want to build this app for your own use (no guarantees that it wil
 6. Move 3sixty.conf to /etc/ and 3sixty.service to /etc/systemd/system
 7. Run `sudo systemctl daemon-reload` 
 8. Run `sudo systemctl start 3sixty && sudo systemctl status 3sixty`
-9. Check the status - it should be "active (running)"
-10. If the service fails, check `/var/log/syslog`  
+9. To auto-start the service after system boot, run `sudo systemctl enable 3sixty`
+10. Check the status - it should be "active (running)"
+11. If the service fails, check `/var/log/syslog`  
+
