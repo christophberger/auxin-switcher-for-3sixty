@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/basgys/goxml2json v1.1.0
+	github.com/taigrr/systemctl v1.0.3
 	github.com/tomwright/dasel v1.22.1
 )
 

@@ -35,6 +35,8 @@ github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
+github.com/taigrr/systemctl v1.0.3 h1:SP4SMOVVcuwPc422dGL3a57opxZTylpuvWF0pfopAGY=
+github.com/taigrr/systemctl v1.0.3/go.mod h1:ZS7lASlL3EB0/BFvJBVyQd89BuwTIlvzCUtVPwovPCo=
 github.com/tomwright/dasel v1.22.1 h1:Y1wefjI7UlhEsHdOozzp3aGMsipKGGyaft6waUU1m24=
 github.com/tomwright/dasel v1.22.1/go.mod h1:YmXrjcQHjmOfvG/ZVg7P0hhURwRlqtbNhSWQu0fOeRQ=
 golang.org/x/net v0.0.0-20211216030914-fe4d6282115f h1:hEYJvxw1lSnWIl8X9ofsYMklzaDs90JI2az5YMd4fPM=

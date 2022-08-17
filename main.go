@@ -9,6 +9,7 @@ import (
 
 	"github.com/christophberger/3sixty/internal/fsapi"
 	"github.com/christophberger/3sixty/internal/hifiberry"
+	"github.com/christophberger/3sixty/internal/systemctl"
 )
 
 // flags
@@ -30,13 +31,8 @@ type app struct {
 	previousMode    string
 }
 
-// soundStatus continuously delivers the status of the sound card
-// through the returned channel.
-//
-// The busy loop blocks until the reader fetches the next value.
-// This way, the receiver can decide upon when status checks happen.
-// Otherwise, the loop would have to use a timer for pausing, thus
-// imposing a fixed interval of status updates.
+// soundStatus reports the current status of the sound card
+// and any status change since the last call
 func soundStatus(a *app) sndStat {
 	current := sndStatOff
 
@@ -65,13 +61,58 @@ func soundStatus(a *app) sndStat {
 	}
 }
 
-// radioListenStatus detects whether or not the radio is listening
+// setRadioFromSoundStatus checks the status of the sound card frequently and
+// changes the radio's power status and mode accordingly.
+func setRadioFromSoundStatus(a *app, fs *fsapi.Fsapi) error {
+	status := soundStatus(a)
+	switch status {
+	case sndStatSwitchedOn:
+		power, err := fs.GetPowerStatus()
+		if err != nil {
+			return fmt.Errorf("setRadioFromSoundStatus: cannot get power status: %w", err)
+		}
+		if power == fsapi.PowerOff {
+			fs.SetPowerStatus(fsapi.PowerOn)
+		}
+		mode, err := fs.GetMode()
+		if err != nil {
+			return fmt.Errorf("setRadioFromSoundStatus: cannot get mode: %w", err)
+		}
+		if mode != fsapi.AuxIn {
+			a.previousMode = mode
+		}
+
+		fs.SetMode(fsapi.AuxIn)
+	case sndStatSwitchedOff:
+		current, err := fs.GetMode()
+		if err != nil {
+			return fmt.Errorf("setRadioFromSoundStatus: cannot get mode: %w", err)
+		}
+		if current != fsapi.AuxIn {
+			// Someone switched to another input while the Raspi player was playing
+			// Leave the radio alone
+			break
+		}
+		if a.previousMode != fsapi.AuxIn {
+			err := fs.SetMode(a.previousMode)
+			if err != nil {
+				return fmt.Errorf("setRadioFromSoundStatus: cannot set mode: %w", err)
+			}
+		}
+		err = fs.SetPowerStatus(fsapi.PowerOff)
+		if err != nil {
+			return fmt.Errorf("setRadioFromSoundStatus: cannot switch radio off: %w", err)
+		}
+	}
+	return nil
+}
+
+// radioListens detects whether or not the radio is listening
 // to aux in. If it is, the function returns true. If the radio is switched
 // off or to another source, the function returns false.
 // If querying the radio fails, the function returns false, assuming that
 // the radio is not ready to play music from aux-in.
-func radioListenStatus() bool {
-	fs := fsapi.New(url, pin)
+func radioListens(fs *fsapi.Fsapi) bool {
 	power, _ := fs.GetPowerStatus()
 	mode, _ := fs.GetMode()
 	if power == fsapi.PowerOn && mode == fsapi.AuxIn {
@@ -80,50 +121,42 @@ func radioListenStatus() bool {
 	return false
 }
 
-// evenLoop checks the status of the sound card frequently and
-// changes the radio's power status and mode accordingly.
-func eventLoop(a *app, fs *fsapi.Fsapi) error {
-	for {
-		status := soundStatus(a)
-		switch status {
-		case sndStatSwitchedOn:
-			power, err := fs.GetPowerStatus()
+// stopSoundIfRadioStopsListening stops any sound output (from either
+// Raspotify or shairport-sync) if the radio stops listening to aux-in.
+func stopSoundIfRadioStopsListening(fs *fsapi.Fsapi) error {
+	if !radioListens(fs) {
+		isPlaying, err := hifiberry.IsPlaying()
+		if err != nil {
+			return fmt.Errorf("stopSoundIfRadioStopsListening: %w", err)
+		}
+		if isPlaying {
+			err = systemctl.Restart("raspotify")
 			if err != nil {
-				return fmt.Errorf("eventLoop: cannot get power status: %w", err)
+				return fmt.Errorf("stopSoundIfRadioStopsListening: %w", err)
 			}
-			if power == fsapi.PowerOff {
-				fs.SetPowerStatus(fsapi.PowerOn)
-			}
-			mode, err := fs.GetMode()
+			err = systemctl.Restart("shairport-sync")
 			if err != nil {
-				return fmt.Errorf("eventLoop: cannot get mode: %w", err)
-			}
-			if mode != fsapi.AuxIn {
-				a.previousMode = mode
-			}
-
-			fs.SetMode(fsapi.AuxIn)
-		case sndStatSwitchedOff:
-			current, err := fs.GetMode()
-			if err != nil {
-				return fmt.Errorf("eventLoop: cannot get mode: %w", err)
-			}
-			if current != fsapi.AuxIn {
-				// Someone switched to another input while the Raspi player was playing
-				// Leave the radio alone
-				break
-			}
-			if a.previousMode != fsapi.AuxIn {
-				err := fs.SetMode(a.previousMode)
-				if err != nil {
-					return fmt.Errorf("eventLoop: cannot set mode: %w", err)
-				}
-			}
-			err = fs.SetPowerStatus(fsapi.PowerOff)
-			if err != nil {
-				return fmt.Errorf("eventLoop: cannot switch radio off: %w", err)
+				return fmt.Errorf("stopSoundIfRadioStopsListening: %w", err)
 			}
 		}
+	}
+	return nil
+}
+
+func eventLoop(a *app, fs *fsapi.Fsapi) error {
+	for {
+		err := setRadioFromSoundStatus(a, fs)
+		if err != nil {
+			return fmt.Errorf("eventLoop: %w", err)
+		}
+
+		time.Sleep(1 * time.Second)
+
+		err = stopSoundIfRadioStopsListening(fs)
+		if err != nil {
+			return fmt.Errorf("eventLoop: %w", err)
+		}
+
 		time.Sleep(1 * time.Second)
 	}
 }
@@ -131,7 +164,7 @@ func eventLoop(a *app, fs *fsapi.Fsapi) error {
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime)
 	url := flag.String("url", "http://CHANGE_ME/fsapi", "API URL to 3sixty")
-	pin := flag.String("pin", "1234", "PIN of 3sixty")
+	pin := flag.String("pin", "0000", "PIN of 3sixty")
 	flag.Parse()
 	fs := fsapi.New(*url, *pin)
 	err := fs.CreateSession()
