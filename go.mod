@@ -15,6 +15,6 @@ require (
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.3.8 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
