@@ -1,6 +1,6 @@
 module github.com/christophberger/3sixty
 
-go 1.18
+go 1.25.0
 
 require (
 	github.com/basgys/goxml2json v1.1.0
@@ -14,7 +14,7 @@ require (
 	github.com/danwakefield/fnmatch v0.0.0-20160403171240-cbb64ac3d964 // indirect
 	github.com/dlclark/regexp2 v1.4.0 // indirect
 	github.com/pelletier/go-toml v1.9.3 // indirect
-	golang.org/x/net v0.38.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
